@@ -6,6 +6,10 @@ import com.yarden.productservice.dto.ProductResponse;
 import com.yarden.productservice.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,11 +24,11 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAllProducts() {
-        List<ProductResponse> products = productService.getAll();
-        return ResponseEntity.ok(products);
+    public ResponseEntity<PagedModel<ProductResponse>> getAllProducts(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        Page<ProductResponse> products = productService.getAll(pageable);
+        return ResponseEntity.ok(new PagedModel<>(products));
     }
-
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         ProductResponse product = productService.getById(id);

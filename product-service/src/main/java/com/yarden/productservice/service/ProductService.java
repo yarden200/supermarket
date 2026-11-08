@@ -10,6 +10,8 @@ import com.yarden.productservice.model.Product;
 import com.yarden.productservice.repository.CategoryRepository;
 import com.yarden.productservice.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +30,9 @@ public class ProductService {
 
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> getAll() {
-        return productRepository.findAll()
-                .stream()
-                .map(productMapper::toResponse)
-                .toList();
+    public Page<ProductResponse> getAll(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(productMapper::toResponse);
     }
 
     @Transactional(readOnly = true)
