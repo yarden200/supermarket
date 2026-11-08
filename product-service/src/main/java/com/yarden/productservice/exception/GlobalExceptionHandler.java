@@ -1,11 +1,14 @@
 package com.yarden.productservice.exception;
 
 
-import com.example.zoo.dto.ErrorResponse;
+
+import com.yarden.productservice.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -23,23 +26,33 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
-    }
-
-    @ExceptionHandler(InternalServerErrorException.class)
-    public ResponseEntity<ErrorResponse> handleInternal(InternalServerErrorException ex, HttpServletRequest request) {
-        log.error("Internal error: {}", ex.getMessage());
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request, null);
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed", request, errors);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateResourceException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(ResourceInUseException.class)
+    public ResponseEntity<ErrorResponse> handleInUse(ResourceInUseException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return buildResponse(HttpStatus.CONFLICT, "Data conflict", request, null);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Malformed request body", request, null);
     }
 
     @ExceptionHandler(Exception.class)
@@ -62,7 +75,4 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(status).body(body);
     }
-
-
-
 }
