@@ -42,6 +42,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Data conflict");
     }
 
+    @ExceptionHandler(InsufficientStockException.class)
+    public ProblemDetail handleInsufficientStock(InsufficientStockException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("unavailable", ex.getShortages());
+        return problem;
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,

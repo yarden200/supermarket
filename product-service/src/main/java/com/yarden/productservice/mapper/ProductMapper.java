@@ -2,6 +2,7 @@ package com.yarden.productservice.mapper;
 
 import com.yarden.productservice.dto.ProductRequest;
 import com.yarden.productservice.dto.ProductResponse;
+import com.yarden.productservice.dto.StockItemResponse;
 import com.yarden.productservice.model.Category;
 import com.yarden.productservice.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,5 +44,14 @@ public class ProductMapper {
         product.setPrice(request.price().setScale(2));
         product.setStockQuantity(request.stockQuantity());
         product.setCategory(category);
+    }
+
+    public StockItemResponse toStockResponse(Product product) {
+        return new StockItemResponse(
+                product.getId(),
+                product.getName(),
+                product.getPrice(),
+                product.getStockQuantity()
+        );
     }
 }

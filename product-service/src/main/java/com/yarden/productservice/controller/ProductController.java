@@ -3,6 +3,8 @@ package com.yarden.productservice.controller;
 
 import com.yarden.productservice.dto.ProductRequest;
 import com.yarden.productservice.dto.ProductResponse;
+import com.yarden.productservice.dto.StockDecreaseRequest;
+import com.yarden.productservice.dto.StockItemResponse;
 import com.yarden.productservice.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,11 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id){
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/stock/decrease")
+    public ResponseEntity<List<StockItemResponse>> decreaseStock(@Valid @RequestBody StockDecreaseRequest request) {
+        return ResponseEntity.ok(productService.decreaseStock(request));
     }
 
 

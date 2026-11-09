@@ -1,8 +1,8 @@
 package com.yarden.productservice.service;
 
-import com.yarden.productservice.dto.ProductRequest;
-import com.yarden.productservice.dto.ProductResponse;
+import com.yarden.productservice.dto.*;
 import com.yarden.productservice.exception.DuplicateResourceException;
+import com.yarden.productservice.exception.InsufficientStockException;
 import com.yarden.productservice.exception.ResourceNotFoundException;
 import com.yarden.productservice.mapper.ProductMapper;
 import com.yarden.productservice.model.Category;
@@ -15,7 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -80,5 +81,47 @@ public class ProductService {
             throw new ResourceNotFoundException("Product", id);
         }
         productRepository.deleteById(id);
+    }
+
+    @Transactional
+    public List<StockItemResponse> decreaseStock(StockDecreaseRequest request) {
+        Map<Long, Integer> requested = request.items().stream()
+                .collect(Collectors.toMap(
+                        StockItemRequest::productId,
+                        StockItemRequest::quantity,
+                        Integer::sum,
+                        TreeMap::new));
+
+        List<Product> products = productRepository.findAllByIdForUpdate(requested.keySet());
+
+        if (products.size() < requested.size()) {
+            Set<Long> found = products.stream().map(Product::getId).collect(Collectors.toSet());
+            Long missingId = requested.keySet().stream()
+                    .filter(id -> !found.contains(id))
+                    .findFirst()
+                    .orElseThrow();
+            throw new ResourceNotFoundException("Product", missingId);
+        }
+
+        List<InsufficientStockException.StockShortage> shortages = new ArrayList<>();
+        for (Product product : products) {
+            int quantity = requested.get(product.getId());
+            if (product.getStockQuantity() < quantity) {
+                shortages.add(new InsufficientStockException.StockShortage(
+                        product.getId(), quantity, product.getStockQuantity()));
+            }
+        }
+        if (!shortages.isEmpty()) {
+            throw new InsufficientStockException(shortages);
+        }
+
+        for (Product product : products) {
+            int quantity = requested.get(product.getId());
+            product.setStockQuantity(product.getStockQuantity() - quantity);
+        }
+
+        return products.stream()
+                .map(productMapper::toStockResponse)
+                .toList();
     }
 }
