@@ -51,7 +51,7 @@ public class OrderService {
                 .map(orderMapper::toResponse);
     }
 
-    public OrderResponse create(CreateOrderRequest request) {
+    public OrderResponse create(CreateOrderRequest request,Long customerId) {
         Map<Long, Integer> quantities = request.items().stream()
                 .collect(Collectors.toMap(
                         OrderItemRequest::productId,
@@ -68,7 +68,7 @@ public class OrderService {
                 .collect(Collectors.toMap(StockItemResponse::productId, Function.identity()));
 
         Order order = Order.builder()
-                .customerId(request.customerId())
+                .customerId(customerId)
                 .status(OrderStatus.PENDING)
                 .build();
 
@@ -99,5 +99,11 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
         order.setStatus(request.status());
         return orderMapper.toResponse(order);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getByCustomer(Long customerId, Pageable pageable) {
+        return orderRepository.findByCustomerId(customerId, pageable)
+                .map(orderMapper::toResponse);
     }
 }

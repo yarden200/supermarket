@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -39,6 +40,7 @@ public class ProductController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request) {
         ProductResponse created = productService.create(request);
         URI location = URI.create("/api/products/" + created.id());
@@ -46,18 +48,21 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         ProductResponse updated = productService.update(id,request);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id){
         productService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/stock/decrease")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<StockItemResponse>> decreaseStock(@Valid @RequestBody StockDecreaseRequest request) {
         return ResponseEntity.ok(productService.decreaseStock(request));
     }
