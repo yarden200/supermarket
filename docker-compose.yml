@@ -13,6 +13,9 @@ services:
       ORDER_DB_NAME: ${ORDER_DB_NAME}
       ORDER_DB_USER: ${ORDER_DB_USER}
       ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD}
+      AUTH_DB_NAME: ${AUTH_DB_NAME}
+      AUTH_DB_USER: ${AUTH_DB_USER}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
