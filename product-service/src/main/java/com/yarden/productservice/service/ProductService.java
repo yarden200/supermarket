@@ -31,9 +31,14 @@ public class ProductService {
 
 
     @Transactional(readOnly = true)
-    public Page<ProductResponse> getAll(Pageable pageable) {
-        return productRepository.findAll(pageable)
-                .map(productMapper::toResponse);
+    public Page<ProductResponse> getAll(Long categoryId, Pageable pageable) {
+        if (categoryId == null) {
+            return productRepository.findAll(pageable).map(productMapper::toResponse);
+        }
+        if (!categoryRepository.existsById(categoryId)) {
+            throw new ResourceNotFoundException("Category", categoryId);
+        }
+        return productRepository.findByCategoryId(categoryId, pageable).map(productMapper::toResponse);
     }
 
     @Transactional(readOnly = true)

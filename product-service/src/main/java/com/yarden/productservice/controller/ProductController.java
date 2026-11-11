@@ -27,10 +27,11 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<PagedModel<ProductResponse>> getAllProducts(
+            @RequestParam(required = false) Long categoryId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        Page<ProductResponse> products = productService.getAll(pageable);
-        return ResponseEntity.ok(new PagedModel<>(products));
+        return ResponseEntity.ok(new PagedModel<>(productService.getAll(categoryId, pageable)));
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         ProductResponse product = productService.getById(id);
@@ -60,6 +61,4 @@ public class ProductController {
     public ResponseEntity<List<StockItemResponse>> decreaseStock(@Valid @RequestBody StockDecreaseRequest request) {
         return ResponseEntity.ok(productService.decreaseStock(request));
     }
-
-
 }
