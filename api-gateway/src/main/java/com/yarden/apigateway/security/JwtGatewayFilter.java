@@ -73,7 +73,9 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             return true;
         }
         boolean isRead = HttpMethod.GET.equals(method);
-        return isRead && (path.startsWith("/api/products") || path.startsWith("/api/categories"));
+        return isRead && (path.startsWith("/api/products")
+                || path.startsWith("/api/categories")
+                || path.startsWith("/api/search"));
     }
 
     private Mono<Void> reject(ServerWebExchange exchange, HttpStatus status, String detail) {
