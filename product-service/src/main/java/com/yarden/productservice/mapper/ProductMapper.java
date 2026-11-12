@@ -3,10 +3,14 @@ package com.yarden.productservice.mapper;
 import com.yarden.productservice.dto.ProductRequest;
 import com.yarden.productservice.dto.ProductResponse;
 import com.yarden.productservice.dto.StockItemResponse;
+import com.yarden.productservice.event.ProductEvent;
+import com.yarden.productservice.event.ProductEventType;
 import com.yarden.productservice.model.Category;
 import com.yarden.productservice.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
 
 @Component
 public class ProductMapper {
@@ -52,6 +56,22 @@ public class ProductMapper {
                 product.getName(),
                 product.getPrice(),
                 product.getStockQuantity()
+        );
+    }
+
+    public ProductEvent toEvent(Product product, ProductEventType type) {
+        return new ProductEvent(
+                type,
+                product.getId(),
+                product.getSku(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getCategory().getId(),
+                product.getCategory().getName(),
+                product.getImageUrl(),
+                Instant.now()
         );
     }
 }

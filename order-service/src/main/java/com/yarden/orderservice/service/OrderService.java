@@ -7,6 +7,7 @@ import com.yarden.orderservice.dto.CreateOrderRequest;
 import com.yarden.orderservice.dto.OrderItemRequest;
 import com.yarden.orderservice.dto.OrderResponse;
 import com.yarden.orderservice.dto.UpdateOrderStatusRequest;
+import com.yarden.orderservice.event.OrderEventType;
 import com.yarden.orderservice.exception.ResourceNotFoundException;
 import com.yarden.orderservice.mapper.OrderMapper;
 import com.yarden.orderservice.model.Order;
@@ -14,6 +15,7 @@ import com.yarden.orderservice.model.OrderItem;
 import com.yarden.orderservice.model.OrderStatus;
 import com.yarden.orderservice.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,9 @@ public class OrderService {
 
     @Autowired
     private ProductClient productClient;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public OrderResponse getById(Long id) {
@@ -87,6 +92,7 @@ public class OrderService {
         order.setTotalPrice(total.setScale(2));
 
         Order saved = orderRepository.save(order);
+        eventPublisher.publishEvent(orderMapper.toEvent(saved, OrderEventType.CREATED));
 
         Map<Long, Integer> remainingStock = stock.stream()
                 .collect(Collectors.toMap(StockItemResponse::productId, StockItemResponse::remainingStock));
@@ -98,6 +104,7 @@ public class OrderService {
         Order order = orderRepository.findWithItemsById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
         order.setStatus(request.status());
+        eventPublisher.publishEvent(orderMapper.toEvent(order, OrderEventType.STATUS_CHANGED));
         return orderMapper.toResponse(order);
     }
 

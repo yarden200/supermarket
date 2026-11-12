@@ -1,6 +1,8 @@
 package com.yarden.productservice.service;
 
 import com.yarden.productservice.dto.*;
+import com.yarden.productservice.event.ProductEvent;
+import com.yarden.productservice.event.ProductEventType;
 import com.yarden.productservice.exception.DuplicateResourceException;
 import com.yarden.productservice.exception.InsufficientStockException;
 import com.yarden.productservice.exception.ResourceNotFoundException;
@@ -10,6 +12,7 @@ import com.yarden.productservice.model.Product;
 import com.yarden.productservice.repository.CategoryRepository;
 import com.yarden.productservice.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,8 @@ public class ProductService {
     private ProductMapper productMapper;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
 
 
@@ -59,6 +64,7 @@ public class ProductService {
 
         Product product = productMapper.toEntity(request, category);
         Product saved = productRepository.save(product);
+        eventPublisher.publishEvent(productMapper.toEvent(saved, ProductEventType.CREATED));
 
         return productMapper.toResponse(saved);
     }
@@ -76,6 +82,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category", request.categoryId()));
 
         productMapper.updateEntity(request, product, category);
+        eventPublisher.publishEvent(productMapper.toEvent(product, ProductEventType.UPDATED));
 
         return productMapper.toResponse(product);
     }
@@ -86,6 +93,7 @@ public class ProductService {
             throw new ResourceNotFoundException("Product", id);
         }
         productRepository.deleteById(id);
+        eventPublisher.publishEvent(ProductEvent.deleted(id));
     }
 
     @Transactional
@@ -123,6 +131,7 @@ public class ProductService {
         for (Product product : products) {
             int quantity = requested.get(product.getId());
             product.setStockQuantity(product.getStockQuantity() - quantity);
+            eventPublisher.publishEvent(productMapper.toEvent(product, ProductEventType.UPDATED));
         }
 
         return products.stream()

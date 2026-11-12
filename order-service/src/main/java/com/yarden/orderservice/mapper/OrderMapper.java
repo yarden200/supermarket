@@ -2,11 +2,15 @@ package com.yarden.orderservice.mapper;
 
 import com.yarden.orderservice.dto.OrderItemResponse;
 import com.yarden.orderservice.dto.OrderResponse;
+import com.yarden.orderservice.event.OrderEvent;
+import com.yarden.orderservice.event.OrderEventItem;
+import com.yarden.orderservice.event.OrderEventType;
 import com.yarden.orderservice.model.Order;
 import com.yarden.orderservice.model.OrderItem;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +44,26 @@ public class OrderMapper {
                 item.getPriceAtPurchase(),
                 item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity())),
                 remainingStock
+        );
+    }
+
+    public OrderEvent toEvent(Order order, OrderEventType type) {
+        List<OrderEventItem> items = order.getItems().stream()
+                .map(item -> new OrderEventItem(
+                        item.getProductId(),
+                        item.getProductName(),
+                        item.getQuantity(),
+                        item.getPriceAtPurchase()))
+                .toList();
+
+        return new OrderEvent(
+                type,
+                order.getId(),
+                order.getCustomerId(),
+                order.getStatus(),
+                order.getTotalPrice(),
+                items,
+                Instant.now()
         );
     }
 }
