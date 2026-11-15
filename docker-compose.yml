@@ -88,6 +88,105 @@ services:
       - supermarket-network
     volumes:
       - ./infra/localstack/init:/etc/localstack/init/ready.d
+  product-service:
+    build: ./product-service
+    container_name: supermarket-product-service
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      IMAGE_SERVICE_URL: http://image-service:8084
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - supermarket-network
+  auth-service:
+    build: ./auth-service
+    container_name: supermarket-auth-service
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - supermarket-network
+  order-service:
+    build: ./order-service
+    container_name: supermarket-order-service
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PRODUCT_SERVICE_URL: http://product-service:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - supermarket-network
+  customer-service:
+    build: ./customer-service
+    container_name: supermarket-customer-service
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - supermarket-network
+  search-service:
+    build: ./search-service
+    container_name: supermarket-search-service
+    env_file: .env
+    environment:
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - supermarket-network
+  image-service:
+    build: ./image-service
+    container_name: supermarket-image-service
+    env_file: .env
+    environment:
+      S3_ENDPOINT: http://localstack:4566
+      S3_PUBLIC_ENDPOINT: http://localhost:4566
+    depends_on:
+      - localstack
+    networks:
+      - supermarket-network
+  api-gateway:
+    build: ./api-gateway
+    container_name: supermarket-api-gateway
+    env_file: .env
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8085
+      PRODUCT_SERVICE_URL: http://product-service:8080
+      ORDER_SERVICE_URL: http://order-service:8081
+      CUSTOMER_SERVICE_URL: http://customer-service:8082
+      SEARCH_SERVICE_URL: http://search-service:8083
+      IMAGE_SERVICE_URL: http://image-service:8084
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+      - customer-service
+      - search-service
+      - image-service
+    networks:
+      - supermarket-network
 volumes:
   postgres_data:
     driver: local
