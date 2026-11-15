@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: supermarket
+spec:
+  replicas: 2  # two pods → Flow 5: orders keep working while one pod is recreated
+  selector: { matchLabels: { app: order-service } }
+  template:
+    metadata: { labels: { app: order-service } }
+    spec:
+      containers:
+        - name: order-service
+          image: supermarket-order-service:latest
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8081 }]
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: ORDER_DB_NAME
+              valueFrom: { secretKeyRef: { name: postgres-secret, key: POSTGRES_DB } }
+            - name: ORDER_DB_USER
+              valueFrom: { secretKeyRef: { name: postgres-secret, key: POSTGRES_USER } }
+            - name: ORDER_DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: postgres-secret, key: POSTGRES_PASSWORD } }
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: app-secret, key: JWT_SECRET } }
+            - name: PRODUCT_SERVICE_URL
+              value: http://product-service:8080
+          # Traffic is sent to a new pod only after its port is open
+          readinessProbe:
+            tcpSocket: { port: 8081 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: supermarket
+spec:
+  selector: { app: order-service }
+  ports:
+    - port: 8081
+      targetPort: 8081

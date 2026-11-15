@@ -1,0 +1,46 @@
+---
+# Username + password as a Secret (base64-encoded by k8s).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: supermarket
+type: Opaque
+stringData:
+  POSTGRES_USER: supermarket_user
+  POSTGRES_PASSWORD: supermarket_password
+  POSTGRES_DB: supermarket
+---
+# Single-replica Deployment (for a real DB use a StatefulSet + PVC; this is enough for the demo).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: supermarket
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports: [{ containerPort: 5432 }]
+          envFrom:
+            - secretRef: { name: postgres-secret }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "supermarket_user", "-d", "supermarket"] }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: supermarket
+spec:
+  selector: { app: postgres }
+  ports:
+    - port: 5432
+      targetPort: 5432

@@ -1,0 +1,39 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: supermarket
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: product-service } }
+  template:
+    metadata: { labels: { app: product-service } }
+    spec:
+      containers:
+        - name: product-service
+          image: supermarket-product-service:latest
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8080 }]
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: PRODUCT_DB_NAME
+              valueFrom: { secretKeyRef: { name: postgres-secret, key: POSTGRES_DB } }
+            - name: PRODUCT_DB_USER
+              valueFrom: { secretKeyRef: { name: postgres-secret, key: POSTGRES_USER } }
+            - name: PRODUCT_DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: postgres-secret, key: POSTGRES_PASSWORD } }
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: app-secret, key: JWT_SECRET } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: supermarket
+spec:
+  selector: { app: product-service }
+  ports:
+    - port: 8080
+      targetPort: 8080

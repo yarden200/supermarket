@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: supermarket
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: api-gateway } }
+  template:
+    metadata: { labels: { app: api-gateway } }
+    spec:
+      containers:
+        - name: api-gateway
+          image: supermarket-api-gateway:latest
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8000 }]
+          env:
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: app-secret, key: JWT_SECRET } }
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service:8085
+            - name: PRODUCT_SERVICE_URL
+              value: http://product-service:8080
+            - name: ORDER_SERVICE_URL
+              value: http://order-service:8081
+---
+# NodePort exposes the gateway on the host (Docker Desktop k8s)
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: supermarket
+spec:
+  type: NodePort
+  selector: { app: api-gateway }
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30000
