@@ -16,6 +16,7 @@
         <module>auth-service</module>
         <module>customer-service</module>
         <module>search-service</module>
+        <module>image-service</module>
     </modules>
 
 </project>

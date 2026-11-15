@@ -77,6 +77,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+  localstack:
+    image: localstack/localstack:4.12
+    container_name: supermarket-localstack
+    environment:
+      - SERVICES=s3
+    ports:
+      - "4566:4566"
+    networks:
+      - supermarket-network
+    volumes:
+      - ./infra/localstack/init:/etc/localstack/init/ready.d
 volumes:
   postgres_data:
     driver: local
