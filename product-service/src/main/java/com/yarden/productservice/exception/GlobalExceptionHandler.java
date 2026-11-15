@@ -56,6 +56,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
     }
 
+    @ExceptionHandler(ImageServiceException.class)
+    public ResponseEntity<ProblemDetail> handleImageService(ImageServiceException ex) {
+        ProblemDetail problem = ex.getProblem() != null
+                ? ex.getProblem()
+                : ProblemDetail.forStatusAndDetail(ex.getStatus(), "Image request failed");
+        return ResponseEntity.status(ex.getStatus()).body(problem);
+    }
+
+    @ExceptionHandler(ImageServiceUnavailableException.class)
+    public ProblemDetail handleImageServiceUnavailable(ImageServiceUnavailableException ex) {
+        log.error("image-service call failed", ex.getCause());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());

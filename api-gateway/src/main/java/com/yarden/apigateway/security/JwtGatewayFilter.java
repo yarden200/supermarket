@@ -49,6 +49,10 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             return reject(exchange, HttpStatus.NOT_FOUND, "Not found");
         }
 
+        if (path.startsWith("/api/images") && !HttpMethod.GET.equals(method) ) {
+            return reject(exchange, HttpStatus.NOT_FOUND, "Not found");
+        }
+
         if (isPublic(path, method)) {
             return chain.filter(exchange);
         }
@@ -75,7 +79,8 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
         boolean isRead = HttpMethod.GET.equals(method);
         return isRead && (path.startsWith("/api/products")
                 || path.startsWith("/api/categories")
-                || path.startsWith("/api/search"));
+                || path.startsWith("/api/search")
+                || path.startsWith("/api/images"));
     }
 
     private Mono<Void> reject(ServerWebExchange exchange, HttpStatus status, String detail) {

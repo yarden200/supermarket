@@ -1,5 +1,6 @@
 package com.yarden.productservice.service;
 
+import com.yarden.productservice.client.ImageClient;
 import com.yarden.productservice.dto.*;
 import com.yarden.productservice.event.ProductEvent;
 import com.yarden.productservice.event.ProductEventType;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,6 +35,10 @@ public class ProductService {
     private ProductRepository productRepository;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+    @Autowired
+    private ImageClient imageClient;
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
 
 
@@ -137,5 +144,21 @@ public class ProductService {
         return products.stream()
                 .map(productMapper::toStockResponse)
                 .toList();
+    }
+
+    public ProductResponse uploadImage(Long id, MultipartFile file) {
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Product", id);
+        }
+
+        ImageUploadResponse uploaded = imageClient.uploadProductImage(id, file);
+
+        return transactionTemplate.execute(status -> {
+            Product product = productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+            product.setImageUrl(uploaded.url());
+            eventPublisher.publishEvent(productMapper.toEvent(product, ProductEventType.UPDATED));
+            return productMapper.toResponse(product);
+        });
     }
 }
