@@ -54,7 +54,8 @@
               "language": "json"
             }
           }
-        }
+        },
+        "description": "Admin login (Kubernetes demo password) - needed to create the demo data."
       },
       "event": [
         {
@@ -87,7 +88,8 @@
               "language": "json"
             }
           }
-        }
+        },
+        "description": "Creates a category for this run; its id is used by the product."
       },
       "event": [
         {
@@ -130,7 +132,8 @@
               "language": "json"
             }
           }
-        }
+        },
+        "description": "Creates a product with enough stock to send the order several times during Flow 5."
       },
       "event": [
         {
@@ -173,7 +176,8 @@
               "language": "json"
             }
           }
-        }
+        },
+        "description": "Customer login - orders are placed as a regular user."
       },
       "event": [
         {
