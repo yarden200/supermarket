@@ -75,4 +75,11 @@ public class ProductController {
                                        @RequestParam("file") MultipartFile file) {
         return productService.uploadImage(id, file);
     }
+
+    @DeleteMapping("/{id}/image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteImage(@PathVariable Long id) {
+        productService.deleteImage(id);
+        return ResponseEntity.noContent().build();
+    }
 }

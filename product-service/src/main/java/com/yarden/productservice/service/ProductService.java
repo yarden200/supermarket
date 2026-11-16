@@ -4,14 +4,13 @@ import com.yarden.productservice.client.ImageClient;
 import com.yarden.productservice.dto.*;
 import com.yarden.productservice.event.ProductEvent;
 import com.yarden.productservice.event.ProductEventType;
-import com.yarden.productservice.exception.DuplicateResourceException;
-import com.yarden.productservice.exception.InsufficientStockException;
-import com.yarden.productservice.exception.ResourceNotFoundException;
+import com.yarden.productservice.exception.*;
 import com.yarden.productservice.mapper.ProductMapper;
 import com.yarden.productservice.model.Category;
 import com.yarden.productservice.model.Product;
 import com.yarden.productservice.repository.CategoryRepository;
 import com.yarden.productservice.repository.ProductRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -24,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ProductService {
 
@@ -94,13 +94,19 @@ public class ProductService {
         return productMapper.toResponse(product);
     }
 
-    @Transactional
     public void delete(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product", id);
+        String imagePath = transactionTemplate.execute(status -> {
+            Product product = productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+            String path = product.getImageUrl();
+            productRepository.delete(product);
+            eventPublisher.publishEvent(ProductEvent.deleted(id));
+            return path;
+        });
+
+        if (imagePath != null) {
+            deleteImageFile(imagePath, id);
         }
-        productRepository.deleteById(id);
-        eventPublisher.publishEvent(ProductEvent.deleted(id));
     }
 
     @Transactional
@@ -160,5 +166,29 @@ public class ProductService {
             eventPublisher.publishEvent(productMapper.toEvent(product, ProductEventType.UPDATED));
             return productMapper.toResponse(product);
         });
+    }
+
+    public void deleteImage(Long id) {
+        String imagePath = transactionTemplate.execute(status -> {
+            Product product = productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+            if (product.getImageUrl() == null) {
+                throw new ResourceNotFoundException("Product image", id);
+            }
+            String path = product.getImageUrl();
+            product.setImageUrl(null);
+            eventPublisher.publishEvent(productMapper.toEvent(product, ProductEventType.UPDATED));
+            return path;
+        });
+
+        deleteImageFile(imagePath, id);
+    }
+
+    private void deleteImageFile(String imagePath, Long productId) {
+        try {
+            imageClient.deleteImage(imagePath);
+        } catch (ImageServiceException | ImageServiceUnavailableException e) {
+            log.warn("Image {} of product {} was not deleted from storage: {}", imagePath, productId, e.getMessage());
+        }
     }
 }

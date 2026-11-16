@@ -53,6 +53,20 @@ public class ImageClient {
         }
     }
 
+    public void deleteImage(String imagePath) {
+        try {
+            imageRestClient.delete()
+                    .uri(imagePath)
+                    .header(HttpHeaders.COOKIE, TOKEN_COOKIE + "=" + currentToken())
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (HttpClientErrorException e) {
+            throw new ImageServiceException(e.getStatusCode(), e.getResponseBodyAs(ProblemDetail.class));
+        } catch (HttpServerErrorException | ResourceAccessException e) {
+            throw new ImageServiceUnavailableException(e);
+        }
+    }
+
     private String currentToken() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs == null) {

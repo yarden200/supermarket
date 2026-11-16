@@ -24,7 +24,7 @@ search, product images, authentication, an API gateway, Kafka events, Docker Com
 | order-service | 8081 | Orders; decreases stock in product-service |
 | customer-service | 8082 | Customer profiles |
 | search-service | 8083 | Product search (Elasticsearch), fed by Kafka |
-| image-service | 8084 | Image upload to S3, presigned URLs |
+| image-service | 8084 | Image upload and delete in S3, presigned URLs |
 | auth-service | 8085 | Users, register / login / logout, JWT issuing |
 
 ## Project structure
@@ -148,6 +148,7 @@ All requests go through the gateway.
 | GET | `/api/products?categoryId=`, `/api/products/{id}`, `/api/categories` | public |
 | POST / PUT / DELETE | `/api/products/**`, `/api/categories/**` | admin |
 | POST | `/api/products/{id}/image` (multipart, field `file`) | admin |
+| DELETE | `/api/products/{id}/image` | admin |
 | GET | `/api/search/products?q=&categoryId=` | public |
 | GET | `/api/images/products/{productId}/{fileName}` | public (302 to a presigned URL) |
 | POST | `/api/orders` | logged in |
@@ -208,6 +209,9 @@ Seed users (created on auth-service startup, passwords from `.env`): `admin` (AD
 - Admin uploads through product-service, which forwards the file to image-service (only JPEG/PNG/WEBP, up to 5MB).
 - S3 key `products/{productId}/{uuid}.{ext}`; the bucket is private.
 - The product stores a **stable path** (`/api/images/...`); every GET returns a 302 to a fresh presigned URL (15 minutes).
+- Deleting a product image (or the product itself) first clears the image path in the DB, then deletes the
+  file from S3 (best effort: if image-service fails, the file stays and a warning is logged).
+  Uploading a new image does not delete the previous file.
 - The same code works with real S3: leave `S3_ENDPOINT` empty and set real credentials.
 
 ## Known limitations
@@ -219,7 +223,7 @@ Seed users (created on auth-service startup, passwords from `.env`): `admin` (AD
 - Internal endpoints are hidden only at the gateway; services trust the forwarded token.
 - Asking for another customer's order returns 403 (as required), so order ids can be enumerated.
 - Gateway errors for an unknown route or an unavailable service use the default WebFlux format, not ProblemDetail.
-- Image deletion is not implemented; replaced images stay in S3. LocalStack keeps data in memory only,
+- Replaced images stay in S3, and a failed S3 delete leaves an orphan file. LocalStack keeps data in memory only,
   so restarting it removes the uploaded images.
 - Without Kafka in Kubernetes, every write that publishes an event waits up to 3 seconds before the send fails.
 - Tests and coverage reports exist only for product-service and order-service.
